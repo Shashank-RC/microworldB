@@ -10,7 +10,6 @@
 
 import random
 from aiA import Node
-from aiA import 
 
 
 class AI:
@@ -23,6 +22,9 @@ class AI:
         self.last_direction = None  
         self.numOfTurns = max_turns
         self.turn = -1
+        self.goalCoords = None
+        self.distanceFromGoal = 0
+        self.hasBFoundGoal = False
 
     def update(self, percepts, msg):
         """

@@ -30,6 +30,8 @@ class AI:
         self.turn += 1
         self.goalCoords = msg[1]
         self.map = msg[0]
+        self.update_graph(percepts)
+
         # Agent A will use depth first search to find the goal
         if percepts['X'][0] == 'r' and self.goalCoord == None:
             self.goalCoord = (self.xCoord,self.yCoord)
@@ -38,24 +40,68 @@ class AI:
         #if aiA has found the goal keep distance from goal so that we know when to go back.
         if self.goalCoord != None and self.hasAFoundGoal == True:
             self.distanceFromGoal += 1
-
+##############################
         if (self.turn + self.distanceFromGoal - 1) == self.numOfTurns:
             #need to backtrack to goal.
             x=None
-
-        if ['X'][0] == '0' or ['X'][0] == '1' or ['X'][0] == '2' or ['X'][0] == '3' or ['X'][0] == '4' or ['X'][0] == '5' or ['X'][0] == '6' or ['X'][0] == '7' or ['X'][0] == '8' or ['X'][0] == '9':
+#################################
+        if ['X'][0] == '0' or \
+            ['X'][0] == '1' or \
+                ['X'][0] == '2' or \
+                    ['X'][0] == '3' or \
+                        ['X'][0] == '4' or \
+                            ['X'][0] == '5' or \
+                                ['X'][0] == '6' or \
+                                    ['X'][0] == '7' or \
+                                        ['X'][0] == '8' or \
+                                            ['X'][0] == '9':
             msg = [self.map, self.goalCoords ]
             return 'U', msg
 
-        if  
+        #The goal is to find the exit first
+        if self.goalCoords == None:
+            for direction in ['N', 'S', 'E', 'W']:
+                if 'r' in percepts[direction]:
+                    msg = [self.map, self.goalCoords]
+                    return self.move_in_direction(direction), msg
 
-        print(f"A received the message: {msg}")
+        #This only works after the exit is know
+        if self.goalCoords != None:
+            for direction in ['N', 'S', 'E', 'W']:
+                if '0' in percepts[direction] or \
+                    '1' in percepts[direction] or \
+                        '2' in percepts[direction] or \
+                            '3' in percepts[direction] or \
+                                '4' in percepts[direction] or \
+                                    '5' in percepts[direction] or \
+                                        '6' in percepts[direction] or \
+                                            '7' in percepts[direction] or \
+                                                '8' in percepts[direction] or \
+                                                    '9' in percepts[direction]:
+                    msg = [self.map, self.goalCoords]
+                    return self.move_in_direction(direction), msg
+        
+        #This is to move if the goal is not in its persepts.        
+        posibleDirection = []
 
-        match percepts['X'][0]:
-            case '0' | '1' | 'r' | 'b':
-                return 'U', None
-            case _:
-                return random.choice(['N', 'S', 'E', 'W']), "A moving"
+        for direction in ['N', 'S', 'E', 'W']:
+            next_node = self.get_neighbor_node(direction)
+            if next_node and not next_node.visited:
+                posibleDirection.append(direction)
+
+        if len(posibleDirection) != 0:
+            direction = random.choice(posibleDirection)
+            self.path_stack.append(self.currentNode)  
+            self.last_direction = direction
+            msg = [self.map, self.goalCoords]
+            return self.move_in_direction(direction), msg
+        
+        if self.path_stack:
+            print("Backtracking to previous node...")
+            backtrack_node = self.path_stack.pop()
+            msg = [self.map, self.goalCoords]
+            return self.backtrack_to_node(backtrack_node), msg
+
 
     #This functions is used to return the direction of the node when it moves     
     def move_in_direction(self, direction):
