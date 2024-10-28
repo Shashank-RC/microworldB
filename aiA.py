@@ -40,11 +40,17 @@ class AI:
         #if aiA has found the goal keep distance from goal so that we know when to go back.
         if self.goalCoord != None and self.hasAFoundGoal == True:
             self.distanceFromGoal += 1
-##############################
+
+        # Go back to exit if the number of turns to get back to the exit is equal or more move back to the exit
         if (self.turn + self.distanceFromGoal - 1) == self.numOfTurns:
-            #need to backtrack to goal.
-            x=None
-#################################
+            msg = [self.map, self.goalCoords]
+            if percepts['X'][0] == 'r':
+                return 'U', msg
+            else:
+                backtrack_node = self.path_stack.pop()
+                return self.backtrack_to_node(backtrack_node), msg
+
+        #If you end up on an objective activate it. 
         if ['X'][0] == '0' or \
             ['X'][0] == '1' or \
                 ['X'][0] == '2' or \
