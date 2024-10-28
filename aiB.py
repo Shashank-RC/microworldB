@@ -9,14 +9,19 @@
 #     of your approach.
 
 import random
+from aiA import Node
+from aiA import 
 
 
 class AI:
     def __init__(self, max_turns):
-        """
-        Called once before the sim starts. You may use this function
-        to initialize any data or data structures you need.
-        """
+        self.xCoord = 0
+        self.yCoord = 0
+        self.currentNode = Node(0, 0)
+        self.map = None 
+        self.path_stack = []  
+        self.last_direction = None  
+        self.numOfTurns = max_turns
         self.turn = -1
 
     def update(self, percepts, msg):
