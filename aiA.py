@@ -9,7 +9,7 @@
 #     of your approach.
 
 import random
-
+import heapq
 
 class AI:
     def __init__(self, max_turns):
@@ -33,12 +33,12 @@ class AI:
         self.update_graph(percepts)
 
         # Agent A will use depth first search to find the goal
-        if percepts['X'][0] == 'r' and self.goalCoord == None:
-            self.goalCoord = (self.xCoord,self.yCoord)
+        if percepts['X'][0] == 'r' and self.goalCoords == None:
+            self.goalCoords = (self.xCoord,self.yCoord)
             self.hasAFoundGoal = True
         
         #if aiA has found the goal keep distance from goal so that we know when to go back.
-        if self.goalCoord != None and self.hasAFoundGoal == True:
+        if self.goalCoords != None and self.hasAFoundGoal == True:
             self.distanceFromGoal += 1
 
         # Go back to exit if the number of turns to get back to the exit is equal or more move back to the exit
@@ -63,6 +63,15 @@ class AI:
                                             ['X'][0] == '9':
             msg = [self.map, self.goalCoords ]
             return 'U', msg
+
+        #if ai is on Teleporter 
+        if ['X'][0] == 'o' or \
+            ['X'][0] == 'b'or \
+                ['X'][0] == 'y' or \
+                    ['X'][0] == 'p':
+            msg = [self.map, self.goalCoords ]
+            #WE NEED TO CHAGNE THE MAP SO WE KNOW THAT WE HAVE GONE THROUGHT A TELEPORTER
+            return 'U', msg 
 
         #The goal is to find the exit first
         if self.goalCoords == None:
@@ -209,6 +218,48 @@ class AI:
             return self.currentNode.westNode
         return None
     
+    def AStar_search(self,start):
+
+        goal_node = self.find_or_create_node(self.goalCoords[0],self.goalCoords[1])
+
+        openset = []
+        #What is stored in open set: (f, node)
+        # g = distance from start, f = heuristic + g
+        start.f_score = 0
+        start.g_score = 0
+        heapq.heapify(openset)
+        heapq.heappush(openset,(start.f_score, start))
+
+        #keep track of the nodes that we came from
+        cameFrom = {}
+
+        while openset:
+            # get node with lowest estimated cost to goal
+            current_node = heapq.heappop(openset)[1]
+
+            current_node.AStarVisited = True
+
+            if current_node == self.goal:
+                return cameFrom # TODO: Need to find path from start to exit
+            
+            for direction in ['N','S','E','W']:
+                neighbor_node = current_node.get_neighbor_node(direction)
+            
+            if neighbor_node is not None:
+                neighbor_new_g_score = current_node.g_score + 1
+
+                if neighbor_new_g_score < neighbor_node.g_score:
+                    neighbor_node.g_score = neighbor_new_g_score
+                    cameFrom[neighbor_node] = current_node
+                    neighbor_node.f_score = heuristic(goal_node,current_node) + neighbor_node.g_score
+                
+                if (neighbor_node.f_score, neighbor_node) not in openset:
+                            heapq.heappush(openset, (neighbor_node.f_score, neighbor_node))
+
+        def heuristic(goalNode, otherNode):
+            return abs(goalNode.xCoord - otherNode.xCoord) + abs(goalNode.yCoord - otherNode.yCoord)
+    
+    
 class Node:
     def __init__(self, X, Y):
         self.xCoord = X
@@ -218,6 +269,9 @@ class Node:
         self.eastNode = None
         self.westNode = None
         self.visited = False
+        self.AStarVisited = False
+        self.f_score = 999999
+        self.g_score = 999999
     
     def setNorthNode(self, node):
         self.northNode = node
