@@ -9,6 +9,7 @@
 #     of your approach.
 
 import random
+import heapq
 from aiA import Node
 
 
@@ -160,3 +161,44 @@ class AI:
         elif direction == 'W':
             return self.currentNode.westNode
         return None
+    
+    def AStar_search(self,start):
+
+        goal_node = self.find_or_create_node(self.goalCoords[0],self.goalCoords[1])
+
+        openset = []
+        #What is stored in open set: (f, node)
+        # g = distance from start, f = heuristic + g
+        start.f_score = 0
+        start.g_score = 0
+        heapq.heapify(openset)
+        heapq.heappush(openset,(start.f_score, start))
+
+        #keep track of the nodes that we came from
+        cameFrom = {}
+
+        while openset:
+            # get node with lowest estimated cost to goal
+            current_node = heapq.heappop(openset)[1]
+
+            current_node.AStarVisited = True
+
+            if current_node == self.goal:
+                return cameFrom # TODO: Need to find path from start to exit
+            
+            for direction in ['N','S','E','W']:
+                neighbor_node = current_node.get_neighbor_node(direction)
+            
+            if neighbor_node is not None and neighbor_node.AStarVisited == False:
+                neighbor_new_g_score = current_node.g_score + 1
+
+                if neighbor_new_g_score < neighbor_node.g_score:
+                    neighbor_node.g_score = neighbor_new_g_score
+                    cameFrom[neighbor_node] = current_node
+                    neighbor_node.f_score = heuristic(goal_node,current_node) + neighbor_node.g_score
+                
+                if (neighbor_node.f_score, neighbor_node) not in openset:
+                            heapq.heappush(openset, (neighbor_node.f_score, neighbor_node))
+
+        def heuristic(goalNode, otherNode):
+            return abs(goalNode.xCoord - otherNode.xCoord) + abs(goalNode.yCoord - otherNode.yCoord)
