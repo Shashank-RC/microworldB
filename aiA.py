@@ -15,13 +15,15 @@ class AI:
     def __init__(self, max_turns):
         self.xCoord = 0
         self.yCoord = 0
-        self.currentNode = Node(0, 0)
-        self.map = [self.currentNode]  
+        self.currentNode = Node(0, 0,'main')
+        self.map = [self.currentNode]
+        self.currentMap = 'main'  
         self.path_stack = []  
         self.last_direction = None  
         self.numOfTurns = max_turns
         self.turn = -1
         self.goalCoords = None
+        self.goalMap = None
         self.distanceFromGoal = 0
         self.hasAFoundGoal = False
         
@@ -35,6 +37,7 @@ class AI:
         # Agent A will use depth first search to find the goal
         if percepts['X'][0] == 'r' and self.goalCoords == None:
             self.goalCoords = (self.xCoord,self.yCoord)
+            self.goalMap = self.currentNode.whatMap
             self.hasAFoundGoal = True
         
         #if aiA has found the goal keep distance from goal so that we know when to go back.
@@ -123,7 +126,7 @@ class AI:
         target_node = self.get_neighbor_node(direction)
         if target_node is None:
             print(f"Creating new node in direction {direction} before moving.")
-            self.create_neighbor_node(direction)  # Ensure node exists before moving
+            self.create_neighbor_node(direction,self.map)  # Ensure node exists before moving
 
         if direction == 'N':
             self.xCoord += 1
@@ -165,22 +168,26 @@ class AI:
             'W': (0, -1)
         }
         for direction, (dx, dy) in directions.items():
-            if percepts[direction][0] == 'g':  # Ground is walkable
-                neighbor_node = self.find_or_create_node(self.xCoord + dx, self.yCoord + dy)
+            if percepts[direction][0] == 'g' \
+                or percepts[direction][0] == 'o' or \
+                    percepts[direction][0] == 'b'  or percepts[direction][0] == 'y' or \
+                        percepts[direction][0] == 'p' or \
+                            percepts[direction][0] == 'r':# Ground is walkable
+                neighbor_node = self.find_or_create_node(self.xCoord + dx, self.yCoord + dy, self.currentMap)
                 self.link_nodes(direction, neighbor_node)
 
     #This function is used to find a node a create a new node if one is not already there
-    def find_or_create_node(self, x, y):
+    def find_or_create_node(self, x, y, map):
         for node in self.map:
-            if node.xCoord == x and node.yCoord == y:
+            if node.xCoord == x and node.yCoord == y and node.whatMap == map:
                 return node
-        new_node = Node(x, y)
+        new_node = Node(x, y, map)
         self.map.append(new_node)
         print(f"Created new node at x={x}, y={y}")
         return new_node
 
     # This function is used to create a new node before the agent moves to if if one is not present.
-    def create_neighbor_node(self, direction):
+    def create_neighbor_node(self, direction, map):
         directions = {
             'N': (1, 0),
             'S': (-1, 0),
@@ -188,7 +195,7 @@ class AI:
             'W': (0, -1)
         }
         dx, dy = directions[direction]
-        new_node = self.find_or_create_node(self.xCoord + dx, self.yCoord + dy)
+        new_node = self.find_or_create_node(self.xCoord + dx, self.yCoord + dy, map)
         self.link_nodes(direction, new_node)
 
     # This function creates the link between two nodes.
@@ -220,7 +227,7 @@ class AI:
     
     def AStar_search(self,start):
 
-        goal_node = self.find_or_create_node(self.goalCoords[0],self.goalCoords[1])
+        goal_node = self.find_or_create_node(self.goalCoords[0],self.goalCoords[1],self.goalMap)
 
         openset = []
         #What is stored in open set: (f, node)
@@ -261,7 +268,7 @@ class AI:
     
     
 class Node:
-    def __init__(self, X, Y):
+    def __init__(self, X, Y, map):
         self.xCoord = X
         self.yCoord = Y
         self.northNode = None
@@ -269,6 +276,7 @@ class Node:
         self.eastNode = None
         self.westNode = None
         self.visited = False
+        self.whatMap = map
         self.AStarVisited = False
         self.f_score = 999999
         self.g_score = 999999

@@ -12,7 +12,6 @@ import random
 import heapq
 from aiA import Node
 
-
 class AI:
     def __init__(self, max_turns):
         self.xCoord = 0
