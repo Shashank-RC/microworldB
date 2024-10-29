@@ -73,7 +73,14 @@ class AI:
                 ['X'][0] == 'y' or \
                     ['X'][0] == 'p':
             msg = [self.map, self.goalCoords ]
-            #WE NEED TO CHAGNE THE MAP SO WE KNOW THAT WE HAVE GONE THROUGHT A TELEPORTER
+            if self.currentMap == 'main':
+                self.xCoord = 0
+                self.yCoord = 0
+                self.currentMap = ['X'][0]
+            else:
+                self.currentMap = 'main'
+                #need to set to old coords
+
             return 'U', msg 
 
         #The goal is to find the exit first
@@ -126,7 +133,7 @@ class AI:
         target_node = self.get_neighbor_node(direction)
         if target_node is None:
             print(f"Creating new node in direction {direction} before moving.")
-            self.create_neighbor_node(direction,self.map)  # Ensure node exists before moving
+            self.create_neighbor_node(direction,self.currentMap)  # Ensure node exists before moving
 
         if direction == 'N':
             self.xCoord += 1
@@ -168,11 +175,7 @@ class AI:
             'W': (0, -1)
         }
         for direction, (dx, dy) in directions.items():
-            if percepts[direction][0] == 'g' \
-                or percepts[direction][0] == 'o' or \
-                    percepts[direction][0] == 'b'  or percepts[direction][0] == 'y' or \
-                        percepts[direction][0] == 'p' or \
-                            percepts[direction][0] == 'r':# Ground is walkable
+            if percepts[direction][0] != 'w':# Ground is walkable
                 neighbor_node = self.find_or_create_node(self.xCoord + dx, self.yCoord + dy, self.currentMap)
                 self.link_nodes(direction, neighbor_node)
 
