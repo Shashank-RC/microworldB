@@ -245,7 +245,7 @@ class AI:
             for direction in ['N','S','E','W']:
                 neighbor_node = current_node.get_neighbor_node(direction)
             
-            if neighbor_node is not None:
+            if neighbor_node is not None and neighbor_node.AStarVisited == False:
                 neighbor_new_g_score = current_node.g_score + 1
 
                 if neighbor_new_g_score < neighbor_node.g_score:
