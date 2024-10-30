@@ -58,7 +58,7 @@ class AI:
             return 'U', msg
 
         #if ai is on Teleporter 
-        if ['X'][0] in ['o', 'b', 'y', 'p']:
+        if percepts['X'][0] in '0123456789':
             msg = [self.map, self.goalCoords]
             if self.currentMap == 'main':
                 self.xCoord = 0
@@ -228,7 +228,7 @@ class AI:
 
             current_node.AStarVisited = True
 
-            if current_node == self.goal:
+            if current_node == goal_node:
                 return cameFrom # TODO: Need to find path from start to exit
             
             for direction in ['N','S','E','W']:
@@ -245,8 +245,9 @@ class AI:
                 if (neighbor_node.f_score, neighbor_node) not in openset:
                             heapq.heappush(openset, (neighbor_node.f_score, neighbor_node))
 
-        def heuristic(goalNode, otherNode):
-            return abs(goalNode.xCoord - otherNode.xCoord) + abs(goalNode.yCoord - otherNode.yCoord)
+        def heuristic(goal_node, other_node):
+            return abs(goal_node.xCoord - other_node.xCoord) + abs(goal_node.yCoord - other_node.yCoord)
+
     
     
 class Node:
@@ -261,8 +262,8 @@ class Node:
         self.visited = False
         self.whatMap = map
         self.AStarVisited = False
-        self.f_score = 999999
-        self.g_score = 999999
+        self.f_score = float('inf')
+        self.g_score = float('inf')
     
     def setNorthNode(self, node):
         self.northNode = node
