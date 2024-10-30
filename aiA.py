@@ -54,32 +54,21 @@ class AI:
                 return self.backtrack_to_node(backtrack_node), msg
 
         #If you end up on an objective activate it. 
-        if ['X'][0] == '0' or \
-            ['X'][0] == '1' or \
-                ['X'][0] == '2' or \
-                    ['X'][0] == '3' or \
-                        ['X'][0] == '4' or \
-                            ['X'][0] == '5' or \
-                                ['X'][0] == '6' or \
-                                    ['X'][0] == '7' or \
-                                        ['X'][0] == '8' or \
-                                            ['X'][0] == '9':
-            msg = [self.map, self.goalCoords ]
+        if ['X'][0] in '0123456789':
+            msg = [self.map, self.goalCoords]
             return 'U', msg
 
         #if ai is on Teleporter 
-        if ['X'][0] == 'o' or \
-            ['X'][0] == 'b'or \
-                ['X'][0] == 'y' or \
-                    ['X'][0] == 'p':
-            msg = [self.map, self.goalCoords ]
+        if ['X'][0] in ['o', 'b', 'y', 'p']:
+            msg = [self.map, self.goalCoords]
             if self.currentMap == 'main':
                 self.xCoord = 0
                 self.yCoord = 0
                 self.currentMap = ['X'][0]
             else:
                 self.currentMap = 'main'
-                #need to set to old coords
+                self.xCoord = self.currentNode.teleportNode.xCoord
+                self.yCoord = self.currentNode.teleportNode.yCoord
 
             return 'U', msg 
 
@@ -91,18 +80,10 @@ class AI:
                     return self.move_in_direction(direction), msg
 
         #This only works after the exit is know
-        if self.goalCoords != None:
+        if self.goalCoords is not None:
+            objectives = set('0123456789')
             for direction in ['N', 'S', 'E', 'W']:
-                if '0' in percepts[direction] or \
-                    '1' in percepts[direction] or \
-                        '2' in percepts[direction] or \
-                            '3' in percepts[direction] or \
-                                '4' in percepts[direction] or \
-                                    '5' in percepts[direction] or \
-                                        '6' in percepts[direction] or \
-                                            '7' in percepts[direction] or \
-                                                '8' in percepts[direction] or \
-                                                    '9' in percepts[direction]:
+                if any(objective in objectives for objective in percepts[direction]):
                     msg = [self.map, self.goalCoords]
                     return self.move_in_direction(direction), msg
         
@@ -278,6 +259,7 @@ class Node:
         self.southNode = None
         self.eastNode = None
         self.westNode = None
+        self.teleportNode = None
         self.visited = False
         self.whatMap = map
         self.AStarVisited = False
@@ -298,3 +280,6 @@ class Node:
     
     def setVisitedToYes(self):
         self.visited = True
+    
+    def setTeleportNode(self, node):
+        self.teleportNode = node
