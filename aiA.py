@@ -28,7 +28,6 @@ class AI:
         self.hasAFoundGoal = False
         
     def update(self, percepts, msg):
-
         self.turn += 1
         self.goalCoords = msg[1]
         self.map = msg[0]
@@ -210,7 +209,6 @@ class AI:
         return None
     
     def AStar_search(self,start):
-
         goal_node = self.find_or_create_node(self.goalCoords[0],self.goalCoords[1],self.goalMap)
 
         openset = []
