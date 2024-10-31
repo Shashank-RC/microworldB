@@ -28,6 +28,8 @@ class AI:
         self.distanceFromGoal = 0
         self.hasAFoundGoal = False
         self.currentMap = 'main'       # Initialize current map layer
+        self.last_teleporter = None    # Track the last teleporter used
+        self.teleporter_cooldown = 0   # Counter to avoid immediate teleporter reuse
 
     def update(self, percepts, msg):
         """
@@ -65,9 +67,17 @@ class AI:
             msg = [self.map, self.goalCoords]
             return 'U', msg
 
-        # Requirement: Handle teleports with 'U' command and update map if teleported
+        # Requirement: Handle teleporters
         if percepts['X'][0] in 'obyp':
-            msg = [self.map, self.goalCoords]
+            # If teleporter cooldown is active, decrement it and skip teleportation
+            if self.teleporter_cooldown > 0:
+                self.teleporter_cooldown -= 1
+                return self.explore_or_backtrack(), msg
+
+            # Use the teleporter and set cooldown
+            self.last_teleporter = percepts['X'][0]
+            self.teleporter_cooldown = 3  # Set cooldown period after using the teleporter
+
             if self.currentMap == 'main':
                 # Reset coordinates for teleport
                 self.xCoord, self.yCoord, self.currentMap = 0, 0, percepts['X'][0]
@@ -75,11 +85,19 @@ class AI:
                 self.currentMap = 'main'  # Return to main map if back from teleport
             return 'U', msg 
 
+        # Reset last_teleporter and cooldown when moving without teleportation
+        self.last_teleporter = None
+        self.teleporter_cooldown = max(0, self.teleporter_cooldown - 1)  # Decrement cooldown if active
+
         # Goal-directed A* pathfinding when goal is known
         if self.goalCoords is not None:
             return self.AStar_search(self.currentNode), msg
 
         # DFS Exploration: prioritize unvisited neighbors
+        return self.explore_or_backtrack(), msg
+
+    # Explores unvisited neighbors or backtracks if none are available
+    def explore_or_backtrack(self):
         possibleDirections = []
         for direction in ['N', 'S', 'E', 'W']:
             next_node = self.get_neighbor_node(direction)
@@ -90,15 +108,15 @@ class AI:
         if possibleDirections:
             direction = random.choice(possibleDirections)
             self.path_stack.append(self.currentNode)
-            return self.move_in_direction(direction), msg
+            return self.move_in_direction(direction)
 
         # Backtrack if DFS exploration has exhausted all paths
         if self.path_stack:
             backtrack_node = self.path_stack.pop()
-            return self.backtrack_to_node(backtrack_node), msg
+            return self.backtrack_to_node(backtrack_node)
 
         # Fallback movement if no other options (for redundancy)
-        return random.choice(['N', 'S', 'E', 'W']), "A moving randomly"
+        return random.choice(['N', 'S', 'E', 'W'])
 
     # Handles DFS movement by updating coordinates and direction
     def move_in_direction(self, direction):
@@ -113,7 +131,7 @@ class AI:
         self.currentNode.setVisitedToYes()
         return direction
 
-    # This function retrieves the neighboring node in the specified direction, if it exists
+    # Retrieves the neighboring node in the specified direction
     def get_neighbor_node(self, direction):
         if direction == 'N':
             return self.currentNode.northNode
@@ -140,11 +158,9 @@ class AI:
 
     # Find or create a new node at specified coordinates within the map
     def find_or_create_node(self, x, y, map=None):
-        # Search for an existing node with the specified coordinates and map
         for node in self.map:
             if node.xCoord == x and node.yCoord == y and node.whatMap == (map or self.currentMap):
                 return node
-        # If not found, create a new node
         new_node = Node(x, y, map or self.currentMap)
         self.map.append(new_node)
         print(f"Created new node at x={x}, y={y} on map={map or self.currentMap}")

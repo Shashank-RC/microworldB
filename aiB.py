@@ -22,12 +22,14 @@ class AI:
         self.map = [self.currentNode]
         self.path_queue = deque()      # BFS queue for exploration
         self.path_stack = []           # Stack for backtracking when BFS queue is empty
-        self.numOfTurns = max_turns if max_turns is not None else 1000;
+        self.numOfTurns = max_turns if max_turns is not None else 1000
         self.turn = -1
         self.goalCoords = None
         self.goalMap = None
         self.distanceFromGoal = 0
         self.hasBFoundGoal = False
+        self.last_teleporter = None
+        self.teleporter_cooldown = 0   # Cooldown to prevent immediate teleporter reuse
 
     def update(self, percepts, msg):
         """
@@ -53,6 +55,21 @@ class AI:
         # Requirement: Check if current cell contains a goal or teleport cell
         if percepts['X'][0] in '0123456789rb':
             return 'U', [self.map, self.goalCoords]
+
+        # Teleporter Handling: If on a teleporter, use it unless cooldown is active
+        if percepts['X'][0] in 'obyp':
+            if self.teleporter_cooldown == 0:
+                self.last_teleporter = percepts['X'][0]
+                self.teleporter_cooldown = 3  # Cooldown period to prevent immediate reuse
+
+                # Switch maps on teleporter use
+                if self.currentNode.whatMap == 'main':
+                    self.xCoord, self.yCoord, self.currentNode.whatMap = 0, 0, percepts['X'][0]
+                else:
+                    self.currentNode.whatMap = 'main'
+                return 'U', [self.map, self.goalCoords]
+            else:
+                self.teleporter_cooldown -= 1  # Decrement cooldown each turn
 
         # BFS Exploration: Add unvisited neighboring directions to queue
         for direction in ['N', 'E', 'S', 'W']:
@@ -101,6 +118,21 @@ class AI:
         print(f"Moved {direction}, new position: x={self.xCoord}, y={self.yCoord}")
         self.currentNode.setVisitedToYes()
         return direction
+
+    # Adds a neighboring node in the specified direction if it doesn’t already exist
+    def create_neighbor_node(self, direction):
+        # Map directions to coordinate adjustments
+        move_dict = {'N': (1, 0), 'S': (-1, 0), 'E': (0, 1), 'W': (0, -1)}
+        dx, dy = move_dict[direction]
+        
+        # Calculate the new coordinates for the neighboring node
+        new_x, new_y = self.xCoord + dx, self.yCoord + dy
+        
+        # Create or find a node at the new coordinates
+        new_node = self.find_or_create_node(new_x, new_y, self.currentNode.whatMap)
+        
+        # Link the newly created node with the current node in the specified direction
+        self.link_nodes(direction, new_node)
 
     # Backtracking function to revisit previous nodes when BFS runs out of paths
     def backtrack_to_node(self, backtrack_node):
