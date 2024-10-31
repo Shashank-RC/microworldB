@@ -8,10 +8,8 @@
 #     In-code comments DO NOT count as a description of
 #     of your approach.
 
-
 import random
 import heapq
-from collections import deque
 from aiA import Node  # Assuming aiA contains the Node class
 
 class AI:
@@ -19,135 +17,133 @@ class AI:
         self.xCoord = 0
         self.yCoord = 0
         self.currentNode = Node(0, 0, 'main')
-        self.map = [self.currentNode]
-        self.path_queue = deque()      # BFS queue for exploration
-        self.path_stack = []           # Stack for backtracking when BFS queue is empty
-        self.numOfTurns = max_turns if max_turns is not None else 1000
+        self.map = {(0, 0, 'main'): self.currentNode}
+        self.path_stack = []
         self.turn = -1
         self.goalCoords = None
         self.goalMap = None
-        self.distanceFromGoal = 0
-        self.hasBFoundGoal = False
+        self.atExit = False  # Flag to indicate waiting at the exit
         self.last_teleporter = None
-        self.teleporter_cooldown = 0   # Cooldown to prevent immediate teleporter reuse
+        self.teleporter_cooldown = 0
 
     def update(self, percepts, msg):
         print(f"B received the message: {msg}")
-
-        # Set default values if Agent A exits
-        if msg is None or msg[1] is None:
-            self.goalCoords = None
-        else:
-            self.goalCoords = msg[1]
-            self.map = msg[0]
-
         self.turn += 1
+
+        # Process incoming data from Agent A
+        if msg:
+            self.goalCoords = msg.get("goalCoords", self.goalCoords)
+            self.map.update(msg.get("sharedMap", {}))
+            if msg.get("teleporter"):
+                self.last_teleporter = msg["teleporter"]
+                self.teleporter_cooldown = 3
+
+        # Prepare outgoing message to Agent A
+        outgoing_msg = {
+            "goalCoords": self.goalCoords,
+            "sharedMap": self.map,
+            "teleporter": self.last_teleporter if self.teleporter_cooldown == 0 else None,
+        }
+
         self.update_graph(percepts)
 
-        # Requirement: Use A* search if goal location is known
-        if self.goalCoords:
-            return self.AStar_search(self.currentNode), [self.map, self.goalCoords]
+        # Detect exit or goal in the current cell
+        if percepts['X'][0] == 'r':  # Exit cell
+            self.goalCoords = (self.xCoord, self.yCoord)
+            self.goalMap = self.currentNode.whatMap
+            self.atExit = True  # Set waiting at exit if B finds it first
+            return 'U', outgoing_msg  # Stay here to help guide Agent A
+        elif percepts['X'][0].isdigit():  # Goal cell
+            self.goalCoords = (self.xCoord, self.yCoord)
+            return 'U', outgoing_msg
 
-        # Requirement: Check if current cell contains a goal or teleport cell
-        if percepts['X'][0] in '0123456789rb':
-            return 'U', [self.map, self.goalCoords]
+        # If waiting at the exit, continue to share the exit coordinates but do not move
+        if self.atExit:
+            return None, outgoing_msg  # Remain stationary to guide A
 
-        # Teleporter Handling: If on a teleporter, use it unless cooldown is active
-        if percepts['X'][0] in 'obyp':
-            if self.teleporter_cooldown == 0:
-                self.last_teleporter = percepts['X'][0]
-                self.teleporter_cooldown = 3  # Cooldown period to prevent immediate reuse
-                if self.currentNode.whatMap == 'main':
-                    self.xCoord, self.yCoord, self.currentNode.whatMap = 0, 0, percepts['X'][0]
-                else:
-                    self.currentNode.whatMap = 'main'
-                return 'U', [self.map, self.goalCoords]
+        # Teleporter handling
+        if percepts['X'][0] in 'obyp' and self.teleporter_cooldown == 0:
+            self.last_teleporter = percepts['X'][0]
+            self.teleporter_cooldown = 3  # Set cooldown before reusing teleporter
+            if self.currentNode.whatMap == 'main':
+                self.xCoord, self.yCoord, self.currentNode.whatMap = 0, 0, percepts['X'][0]
             else:
-                self.teleporter_cooldown -= 1  # Decrement cooldown each turn
+                self.currentNode.whatMap = 'main'
+            return 'U', outgoing_msg
+        elif self.teleporter_cooldown > 0:
+            self.teleporter_cooldown -= 1
 
-        # BFS Exploration: Add unvisited neighboring directions to queue
-        for direction in ['N', 'E', 'S', 'W']:
-            neighbor_node = self.get_neighbor_node(direction)
-            if neighbor_node and not neighbor_node.visited:
-                self.path_queue.append(direction)
-                self.path_stack.append(self.currentNode)  # Save for backtracking
+        # Use A* if the exit location is known
+        if self.goalCoords:
+            return self.AStar_search(self.currentNode), outgoing_msg
 
-        # Requirement: Prioritize BFS queue direction if available
-        if self.path_queue:
-            next_direction = self.path_queue.popleft()
-            return self.move_in_direction(next_direction), [self.map, self.goalCoords]
+        # Fallback to exploration or backtracking
+        return self.explore_or_backtrack(), outgoing_msg
 
-        # Requirement: Use backtracking when BFS queue is empty
+    def explore_or_backtrack(self):
+        possibleDirections = []
+        for direction in ['N', 'S', 'E', 'W']:
+            next_node = self.get_neighbor_node(direction)
+            if next_node and not next_node.visited:
+                possibleDirections.append(direction)
+
+        # Explore if possible
+        if possibleDirections:
+            direction = random.choice(possibleDirections)
+            self.path_stack.append(self.currentNode)
+            return self.move_in_direction(direction)
+
+        # Backtrack if no unexplored areas
         if self.path_stack:
             backtrack_node = self.path_stack.pop()
-            return self.backtrack_to_node(backtrack_node), [self.map, self.goalCoords]
+            return self.backtrack_to_node(backtrack_node)
 
-        # Fallback: Random movement when all options exhausted
-        return random.choice(['N', 'S', 'E', 'W']), "B moving randomly due to empty queue and stack"
+        # Random fallback move
+        return random.choice(['N', 'S', 'E', 'W'])
 
-    # This method moves the agent in a specified direction and updates coordinates
     def move_in_direction(self, direction):
         target_node = self.get_neighbor_node(direction)
-        if target_node is None:
-            print(f"Creating new node in direction {direction} before moving.")
+        if not target_node:
             self.create_neighbor_node(direction)
 
-        if direction == 'N':
-            self.xCoord += 1
-            self.currentNode = self.currentNode.northNode
-        elif direction == 'S':
-            self.xCoord -= 1
-            self.currentNode = self.currentNode.southNode
-        elif direction == 'E':
-            self.yCoord += 1
-            self.currentNode = self.currentNode.eastNode
-        elif direction == 'W':
-            self.yCoord -= 1
-            self.currentNode = self.currentNode.westNode
-        
-        if self.currentNode is None:
-            raise ValueError(f"Error: Moved in direction {direction}, but currentNode is None.")
-
-        print(f"Moved {direction}, new position: x={self.xCoord}, y={self.yCoord}")
+        move_dict = {'N': (1, 0), 'S': (-1, 0), 'E': (0, 1), 'W': (0, -1)}
+        dx, dy = move_dict[direction]
+        self.xCoord += dx
+        self.yCoord += dy
+        self.currentNode = self.get_neighbor_node(direction)
         self.currentNode.setVisitedToYes()
         return direction
 
-    # Adds a neighboring node in the specified direction if it doesn’t already exist
-    def create_neighbor_node(self, direction):
-        move_dict = {'N': (1, 0), 'S': (-1, 0), 'E': (0, 1), 'W': (0, -1)}
-        dx, dy = move_dict[direction]
-        new_x, new_y = self.xCoord + dx, self.yCoord + dy
-        new_node = self.find_or_create_node(new_x, new_y, self.currentNode.whatMap)
-        self.link_nodes(direction, new_node)
+    def get_neighbor_node(self, direction):
+        return {
+            'N': self.currentNode.northNode,
+            'S': self.currentNode.southNode,
+            'E': self.currentNode.eastNode,
+            'W': self.currentNode.westNode
+        }.get(direction)
 
-    # Backtracking function to revisit previous nodes when BFS runs out of paths
     def backtrack_to_node(self, backtrack_node):
-        return next((self.move_in_direction(d) for d in ['N', 'S', 'E', 'W'] if self.get_neighbor_node(d) == backtrack_node), None)
+        for direction in ['N', 'S', 'E', 'W']:
+            if self.get_neighbor_node(direction) == backtrack_node:
+                return self.move_in_direction(direction)
+        return random.choice(['N', 'S', 'E', 'W'])
 
-    # Graph update method that links new nodes in the map based on percepts
     def update_graph(self, percepts):
-        directions = {
-            'N': (1, 0),
-            'S': (-1, 0),
-            'E': (0, 1),
-            'W': (0, -1)
-        }
-        for direction, (dx, dy) in directions.items():
-            if percepts[direction][0] != 'w':
+        for direction in ['N', 'S', 'E', 'W']:
+            if percepts[direction][0] != 'w':  # Avoid walls
+                dx, dy = (1 if direction == 'N' else -1 if direction == 'S' else 0,
+                          1 if direction == 'E' else -1 if direction == 'W' else 0)
                 neighbor_node = self.find_or_create_node(self.xCoord + dx, self.yCoord + dy)
                 self.link_nodes(direction, neighbor_node)
 
-    # This function finds or creates a new node if one does not already exist at the specified coordinates
     def find_or_create_node(self, x, y, map=None):
-        for node in self.map:
-            if node.xCoord == x and node.yCoord == y and node.whatMap == (map or self.currentNode.whatMap):
-                return node
+        key = (x, y, map or self.currentNode.whatMap)
+        if key in self.map:
+            return self.map[key]
         new_node = Node(x, y, map or self.currentNode.whatMap)
-        self.map.append(new_node)
-        print(f"Created new node at x={x}, y={y} on map={map or self.currentNode.whatMap}")
+        self.map[key] = new_node
         return new_node
 
-    # Link nodes in the specified direction to maintain graph structure
     def link_nodes(self, direction, neighbor_node):
         if direction == 'N':
             self.currentNode.setNorthNode(neighbor_node)
@@ -162,73 +158,35 @@ class AI:
             self.currentNode.setWestNode(neighbor_node)
             neighbor_node.setEastNode(self.currentNode)
 
-    # This function retrieves the neighboring node in the specified direction, if it exists
-    def get_neighbor_node(self, direction):
-        if direction == 'N':
-            return self.currentNode.northNode
-        elif direction == 'S':
-            return self.currentNode.southNode
-        elif direction == 'E':
-            return self.currentNode.eastNode
-        elif direction == 'W':
-            return self.currentNode.westNode
-        return None
-
-    # A* search function for finding shortest path to goal or exit when known
     def AStar_search(self, start_node):
-        if not self.goalCoords:
-            return self.explore_or_backtrack()  # Use exploration if no goal coordinates
-
-        goal_node = self.find_or_create_node(self.goalCoords[0], self.goalCoords[1])
-        openset = []
-        start_node.f_score = 0
-        start_node.g_score = 0
-        start_node.AStarVisited = True
-        heapq.heappush(openset, (start_node.f_score, start_node))
-
-        came_from = {}
-
+        goal_node = self.find_or_create_node(self.goalCoords[0], self.goalCoords[1], self.goalMap)
+        openset = [(start_node.f_score, start_node)]
+        start_node.g_score = start_node.f_score = 0
+        cameFrom = {}
         while openset:
-            current_node = heapq.heappop(openset)[1]
-            
-            if current_node == goal_node:
-                self.reset_AStarVisited()
-                return self.reconstruct_path(came_from, current_node)
-
+            current = heapq.heappop(openset)[1]
+            if current == goal_node:
+                return self.reconstruct_path(cameFrom, current)
             for direction in ['N', 'S', 'E', 'W']:
-                neighbor = current_node.get_neighbor_node(direction)
+                neighbor = current.get_neighbor_node(direction)
                 if neighbor and not neighbor.AStarVisited:
-                    tentative_g_score = current_node.g_score + 1
-                    if tentative_g_score < neighbor.g_score:
-                        came_from[neighbor] = current_node
-                        neighbor.g_score = tentative_g_score
-                        neighbor.f_score = tentative_g_score + self.heuristic(goal_node, neighbor)
+                    g_score = current.g_score + 1
+                    if g_score < neighbor.g_score:
+                        cameFrom[neighbor] = current
+                        neighbor.g_score = g_score
+                        neighbor.f_score = g_score + abs(goal_node.xCoord - neighbor.xCoord) + abs(goal_node.yCoord - neighbor.yCoord)
                         neighbor.AStarVisited = True
                         heapq.heappush(openset, (neighbor.f_score, neighbor))
-
-        self.reset_AStarVisited()
         return random.choice(['N', 'S', 'E', 'W'])
 
-    # Reset A* visited status for all nodes
-    def reset_AStarVisited(self):
-        for node in self.map:
-            node.AStarVisited = False
-
-    # Manhattan distance heuristic for A* search
-    def heuristic(self, goalNode, otherNode):
-        return abs(goalNode.xCoord - otherNode.xCoord) + abs(goalNode.yCoord - otherNode.yCoord)
-
-    # Reconstructs path to goal node after A* search is complete
-    def reconstruct_path(self, came_from, current_node):
+    def reconstruct_path(self, cameFrom, node):
         path = []
-        while current_node in came_from:
-            previous_node = came_from[current_node]
-            direction = self.get_direction(previous_node, current_node)
+        while node in cameFrom:
+            direction = self.get_direction(cameFrom[node], node)
             path.append(direction)
-            current_node = previous_node
+            node = cameFrom[node]
         return path[-1] if path else random.choice(['N', 'S', 'E', 'W'])
 
-    # Helper function to get direction between two nodes
     def get_direction(self, from_node, to_node):
         if from_node.northNode == to_node:
             return 'N'
@@ -238,22 +196,3 @@ class AI:
             return 'E'
         elif from_node.westNode == to_node:
             return 'W'
-    
-    # Default exploration and backtracking if A* fails
-    def explore_or_backtrack(self):
-        possibleDirections = []
-        for direction in ['N', 'S', 'E', 'W']:
-            neighbor_node = self.get_neighbor_node(direction)
-            if neighbor_node and not neighbor_node.visited:
-                possibleDirections.append(direction)
-
-        if possibleDirections:
-            direction = random.choice(possibleDirections)
-            self.path_stack.append(self.currentNode)
-            return self.move_in_direction(direction)
-
-        if self.path_stack:
-            backtrack_node = self.path_stack.pop()
-            return self.backtrack_to_node(backtrack_node)
-
-        return random.choice(['N', 'S', 'E', 'W'])
