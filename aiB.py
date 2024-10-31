@@ -24,7 +24,7 @@ class AI:
         self.goalCoords = None
         self.goalMap = None
         self.distanceFromGoal = 0
-        self.hasAFoundGoal = False
+        self.hasBFoundGoal = False
         self.currentMap = 'main'       # Initialize current map layer
         self.last_teleporter = None    # Track the last teleporter used
         self.teleporter_cooldown = 0   # Counter to avoid immediate teleporter reuse
@@ -44,18 +44,19 @@ class AI:
         if percepts['X'][0] == 'r':
             self.goalCoords = (self.xCoord, self.yCoord)
             self.goalMap = self.currentNode.whatMap
-            self.hasAFoundGoal = True
+            self.hasBFoundGoal = True
             # Immediate exit if on the exit cell
-            return 'U', [self.map, self.goalCoords]
+            #return 'U', [self.map, self.goalCoords]
         
         for direction in ['N', 'S', 'E', 'W']:
-            if 'r' in percepts[direction]:
+            if 'r' in percepts[direction] and self.goalCoords == None:
                 return self.move_in_direction(direction), [self.map, self.goalCoords]
 
         # Exit strategy near turn limit
-        if self.goalCoords is not None and self.hasAFoundGoal:
+        if self.goalCoords is not None and self.hasBFoundGoal:
             self.distanceFromGoal += 1
-        if (self.turn + self.distanceFromGoal - 1) >= self.numOfTurns:
+
+        if (self.turn + self.distanceFromGoal - 100) >= self.numOfTurns:
             if percepts['X'][0] == 'r':  # Exit if on goal cell
                 return 'U', [self.map, self.goalCoords]
             # Backtrack towards exit if close to turn limit
