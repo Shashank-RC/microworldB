@@ -8,6 +8,7 @@
 #     In-code comments DO NOT count as a description of
 #     of your approach.
 
+
 import random
 import heapq
 from collections import deque
@@ -15,7 +16,6 @@ from aiA import Node  # Assuming aiA contains the Node class
 
 class AI:
     def __init__(self, max_turns):
-        # Initialize agent's position, map, and exploration settings
         self.xCoord = 0
         self.yCoord = 0
         self.currentNode = Node(0, 0, 'main')
@@ -32,19 +32,15 @@ class AI:
         self.teleporter_cooldown = 0   # Cooldown to prevent immediate teleporter reuse
 
     def update(self, percepts, msg):
-        """
-        Updates agent's actions each turn based on BFS exploration, A* goal pathfinding, and backtracking.
-        Receives percepts of nearby cells and a message from Agent A containing map and goal info.
-        """
         print(f"B received the message: {msg}")
 
-        # Check if msg is None and set default values if needed
-        if msg is None:
-            msg = [self.map, self.goalCoords]
+        # Set default values if Agent A exits
+        if msg is None or msg[1] is None:
+            self.goalCoords = None
+        else:
+            self.goalCoords = msg[1]
+            self.map = msg[0]
 
-        # Process message contents
-        self.goalCoords = msg[1]
-        self.map = msg[0]
         self.turn += 1
         self.update_graph(percepts)
 
@@ -61,8 +57,6 @@ class AI:
             if self.teleporter_cooldown == 0:
                 self.last_teleporter = percepts['X'][0]
                 self.teleporter_cooldown = 3  # Cooldown period to prevent immediate reuse
-
-                # Switch maps on teleporter use
                 if self.currentNode.whatMap == 'main':
                     self.xCoord, self.yCoord, self.currentNode.whatMap = 0, 0, percepts['X'][0]
                 else:
@@ -98,7 +92,6 @@ class AI:
             print(f"Creating new node in direction {direction} before moving.")
             self.create_neighbor_node(direction)
 
-        # Update position based on direction and move agent to that node
         if direction == 'N':
             self.xCoord += 1
             self.currentNode = self.currentNode.northNode
@@ -121,17 +114,10 @@ class AI:
 
     # Adds a neighboring node in the specified direction if it doesn’t already exist
     def create_neighbor_node(self, direction):
-        # Map directions to coordinate adjustments
         move_dict = {'N': (1, 0), 'S': (-1, 0), 'E': (0, 1), 'W': (0, -1)}
         dx, dy = move_dict[direction]
-        
-        # Calculate the new coordinates for the neighboring node
         new_x, new_y = self.xCoord + dx, self.yCoord + dy
-        
-        # Create or find a node at the new coordinates
         new_node = self.find_or_create_node(new_x, new_y, self.currentNode.whatMap)
-        
-        # Link the newly created node with the current node in the specified direction
         self.link_nodes(direction, new_node)
 
     # Backtracking function to revisit previous nodes when BFS runs out of paths
@@ -147,17 +133,15 @@ class AI:
             'W': (0, -1)
         }
         for direction, (dx, dy) in directions.items():
-            if percepts[direction][0] != 'w':  # Only proceed if cell is walkable
+            if percepts[direction][0] != 'w':
                 neighbor_node = self.find_or_create_node(self.xCoord + dx, self.yCoord + dy)
                 self.link_nodes(direction, neighbor_node)
 
     # This function finds or creates a new node if one does not already exist at the specified coordinates
     def find_or_create_node(self, x, y, map=None):
-        # Search for an existing node with the specified coordinates and map
         for node in self.map:
             if node.xCoord == x and node.yCoord == y and node.whatMap == (map or self.currentNode.whatMap):
                 return node
-        # If not found, create a new node
         new_node = Node(x, y, map or self.currentNode.whatMap)
         self.map.append(new_node)
         print(f"Created new node at x={x}, y={y} on map={map or self.currentNode.whatMap}")
@@ -192,40 +176,43 @@ class AI:
 
     # A* search function for finding shortest path to goal or exit when known
     def AStar_search(self, start_node):
-        goal_node = self.find_or_create_node(self.goalCoords[0], self.goalCoords[1])
+        if not self.goalCoords:
+            return self.explore_or_backtrack()  # Use exploration if no goal coordinates
 
-        # Open set for A* pathfinding with (f_score, node) tuples
+        goal_node = self.find_or_create_node(self.goalCoords[0], self.goalCoords[1])
         openset = []
         start_node.f_score = 0
         start_node.g_score = 0
+        start_node.AStarVisited = True
         heapq.heappush(openset, (start_node.f_score, start_node))
 
         came_from = {}
 
         while openset:
             current_node = heapq.heappop(openset)[1]
-            current_node.AStarVisited = True
-
-            # Requirement: Check if goal has been reached
+            
             if current_node == goal_node:
+                self.reset_AStarVisited()
                 return self.reconstruct_path(came_from, current_node)
 
-            # Explore neighbors in four directions
             for direction in ['N', 'S', 'E', 'W']:
                 neighbor = current_node.get_neighbor_node(direction)
                 if neighbor and not neighbor.AStarVisited:
                     tentative_g_score = current_node.g_score + 1
-
-                    # Update if a shorter path to neighbor is found
                     if tentative_g_score < neighbor.g_score:
                         came_from[neighbor] = current_node
                         neighbor.g_score = tentative_g_score
                         neighbor.f_score = tentative_g_score + self.heuristic(goal_node, neighbor)
-                        if (neighbor.f_score, neighbor) not in openset:
-                            heapq.heappush(openset, (neighbor.f_score, neighbor))
+                        neighbor.AStarVisited = True
+                        heapq.heappush(openset, (neighbor.f_score, neighbor))
 
-        # Requirement: Return fallback random direction if no path found
+        self.reset_AStarVisited()
         return random.choice(['N', 'S', 'E', 'W'])
+
+    # Reset A* visited status for all nodes
+    def reset_AStarVisited(self):
+        for node in self.map:
+            node.AStarVisited = False
 
     # Manhattan distance heuristic for A* search
     def heuristic(self, goalNode, otherNode):
@@ -251,3 +238,22 @@ class AI:
             return 'E'
         elif from_node.westNode == to_node:
             return 'W'
+    
+    # Default exploration and backtracking if A* fails
+    def explore_or_backtrack(self):
+        possibleDirections = []
+        for direction in ['N', 'S', 'E', 'W']:
+            neighbor_node = self.get_neighbor_node(direction)
+            if neighbor_node and not neighbor_node.visited:
+                possibleDirections.append(direction)
+
+        if possibleDirections:
+            direction = random.choice(possibleDirections)
+            self.path_stack.append(self.currentNode)
+            return self.move_in_direction(direction)
+
+        if self.path_stack:
+            backtrack_node = self.path_stack.pop()
+            return self.backtrack_to_node(backtrack_node)
+
+        return random.choice(['N', 'S', 'E', 'W'])
