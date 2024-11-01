@@ -1,12 +1,72 @@
-# NAME(S): [PLACE YOUR NAME(S) HERE]
+# Kaleb Hannan, Shashank Reddy
+#
+# We were working in the same github repo 
 #
 # APPROACH: [WRITE AN OVERVIEW OF YOUR APPROACH HERE.]
-#     Please use multiple lines (< ~80-100 char) for you approach write-up.
-#     Keep it readable. In other words, don't write
-#     the whole damned thing on one super long line.
+
+#   Our initial approach to this project was this: aiA would use the depth-first search approach we 
+# made when creating our AI for project one.  aiB would then use a depth-first search to move 
+# around the map, and its initial goal would be to find the objectives, whereas aiA’s initial goal 
+# would be to find the exit of the map.  We thought that doing this it would make it so that they
+# were each trying to do different things and also so that they would cover the most amount of 
+# ground. In the case where an AI found a goal, it would keep a count of how far away it moved
+# from the goal, and then when it got close to the max turn, it would backtrack to the exit.  The AI 
+# that did not find the exit would then use an A* shortest path algorithm to try and find its way to
+# the exit before the maximum number of turns.  When doing this, it was a complete failure. The 
+# AIB breath first search was not working properly, and since we were sharing the same map and
+# making the node when the ether AI went over it so the other would not, the AIs were getting 
+# stuck and unable to move.  After this, we decided that each AI was going to use the same
+# depth-first search algorithm, but the aiA move set was to go East and South as the first two 
+# move options, and aiB would go West and North as its first two move options. We also made it
+# so that they would only be restricted by nodes that each AI had already visited. This made it so
+# that the ai’s were not getting stuck and not able to move, making them so that they could
+# explore the map.  At this point in the implementation, we made it so that if an AI found the goal,
+# it would exit and then, in the message, send the x,y Coordinates of the exit to the other AI so 
+# that it could use the A* to find it’s way back.  But it was only working if the the AI using the 
+# A* search had not goten throught a teleporter before using the A* becuse we did not have the nodes
+# linked correctly.  So I wanted to try and keep the AI in he enviorment for a longer time before they
+# exited so I disabled the teleportation on the ais and started to make it so the if the AI found the exit
+# that it would mark it and save the exit coordinats and then it would keep searching, then I would keep track
+# of the turns and the max turn, I then compared them and subtracted 100 from turn. 
+# So when self.turn - 100 >= self.max_turn then I would use the A* on both agents and and they would both use that to get
+# out the the enviorment.  They was working and we were going to start imlimenting teleportation but I waned to
+# increase the number of moves in this comparison (self.turn - 100 >= self.max_turn) from 100 to 150 so that if 
+# the map was differnt then it could get out.  But then I started to run into issues of the A* function were the
+# ai that found the goal the A* founction could not find a path back.  So we tryed to fix the A* and were still 
+# running into isses so we implemented a we tryed to implement dijkstra's algorithm to replace our A* but we were still
+# having problems.  After this we took a few steps back becuse we were running out of ideas to make this work.
+# So we went back the when an AI finds the exit to just exit and then for the other ai to call the A* to find it;s way back.
+# We did this becuse the only time that the A* was haing isssues was with the AIs when they found the goal before exiting.
+# 
+# So for our final implemtntation:
 #
-#     In-code comments DO NOT count as a description of
-#     of your approach.
+# How are our AI similar:  They Are both using the same searching algorithem (Depth first search to move around the map).
+# They are also using the same goal based moving system were if they see ether a objective or the exit they will move tordes it.
+# They are also using the same Node structer. This Alows them to using the same map so that if one finds the goal the other can use
+# that information that the other ai found to find it's way back.
+#
+# How are the AI's Differnt:  The way that the AI differ is that first both of the AI's use diffet movment patterns.
+# aiA's defult movement pattern is to go East first then go South then West and lastly North.
+# aiB'S defult movment pattern is the oposet it will go West first then it will go North then East and lastly South.
+# The other differnce is that AI_ dose not use teleporters when exploring and will only use them if the goal is thought a Teleporter.
+# By doing this it make is to the aiB will primarly start searching on the top and left side of the map and aiA will search on the
+# Right and towrds the bottom of the map.  By doing this they will cover the most amount of ground in the least amount of moves.
+#
+#
+# aiA Approch: 
+# This AI first uses a depth first search to explore the map. 
+# The ai will prioritize going  East first then South, then West and lastly North.
+# This will make it so that the ai will primaraly search the right and bottom of the map.
+# aiA will always send 2 things to aiB the updated map after its move and also ether None or the exit coordinates if it fould the exit.
+# aiA will also be able to use the teleporters to explore the map. 
+# It also has a goal based approch were it will move tords the objectivs and the exit if it sees it.
+# If aiA is on the exit it will then exit the map.
+# If aiB finds the exit then it will use the A* method to find its way to the goal if in the 'main' map
+# if it is in a teleporter map it will backtrack back to the teleporter then use A* to find it's way to the goal.
+#
+#
+#
+#
 
 import random
 import heapq

@@ -1,12 +1,21 @@
-# NAME(S): [PLACE YOUR NAME(S) HERE]
+# Kaleb Hannan, Shashank Reddy
 #
-# APPROACH: [WRITE AN OVERVIEW OF YOUR APPROACH HERE.]
-#     Please use multiple lines (< ~80-100 char) for you approach write-up.
-#     Keep it readable. In other words, don't write
-#     the whole damned thing on one super long line.
+# We were working in the same github repo 
 #
-#     In-code comments DO NOT count as a description of
-#     of your approach.
+# APPROACH: Look In aiA File for discriction on approch for both of the AI's what we did 
+# how the AI's are similar and how they are differnt.
+#
+#aiB Approch: 
+# This AI first uses a depth first search to explore the map. 
+# The ai will prioritize going West first then North, then East and lastly South.
+# This will make it so that the ai will primaraly search the left and top of the map.
+# aiB will always send 2 things to aiB the updated map after its move and also ether None or the exit coordinates if it fould the exit.
+# aiB will also not be able to use the teleporters to explore the map. 
+# aiB will only use the teleopters if the exit is thought one of them.
+# It also has a goal based approch were it will move tords the objectivs and the exit if it sees it.
+# If aiB is on the exit it will then exit the map.
+# If aiA finds the exit then it will use the A* method to find its way to the goal if in the 'main' map
+# If the goal if thought a teleporter then it will A* to the teleporter then A* to the exit.
 
 import random
 import heapq
