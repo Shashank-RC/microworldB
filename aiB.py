@@ -25,6 +25,10 @@ class AI:
         self.atExit = False  # Flag to indicate waiting at the exit
         self.last_teleporter = None
         self.teleporter_cooldown = 0
+        self.hasAStarRunYet = False
+        self.AStarPath = None
+        self.AStarCount = 0
+        self.max_turn = max_turns if max_turns else 800
 
     def update(self, percepts, msg):
         
@@ -56,7 +60,7 @@ class AI:
             self.goalCoords = (self.xCoord, self.yCoord)
             self.goalMap = self.currentNode.whatMap
             self.atExit = True  # Set waiting at exit if B finds it first
-            return 'U', [self.goalCoords, self.map]  # Stay here to help guide Agent A
+            #return 'U', [self.goalCoords, self.map]  # Stay here to help guide Agent A
         elif percepts['X'][0].isdigit():  # Goal cell
             return 'U', [self.goalCoords, self.map]
 
@@ -69,9 +73,6 @@ class AI:
                 self.path_stack.append(self.currentNode)
                 return self.move_in_direction(direction), [self.goalCoords, self.map]
 
-        # If waiting at the exit, continue to share the exit coordinates but do not move
-        if self.atExit:
-            return None, [self.goalCoords, self.map]  # Remain stationary to guide A
 
         # Teleporter handling
         '''
@@ -86,8 +87,8 @@ class AI:
         elif self.teleporter_cooldown > 0:
             self.teleporter_cooldown -= 1
         '''
-        # Use A* if the exit location is known
-        if self.goalCoords:
+        # Use A* if the exit or goal is known and proceed directly
+        if self.goalCoords and self.turn >= self.max_turn - 100:
             if self.currentNode.whatMap!= 'main':
                 backtrack_node = self.path_stack.pop()
                 return self.backtrack_to_node(backtrack_node), [self.goalCoords, self.map]
@@ -95,6 +96,8 @@ class AI:
                 if self.hasAStarRunYet == False:
                     self.AStarPath = self.AStar_search(self.currentNode)
                     self.hasAStarRunYet = True
+                if percepts['X'][0] == 'r':
+                    return 'U', [self.goalCoords, self.map]
                 self.AStarCount -= 1
                 return self.AStarPath[self.AStarCount],[self.goalCoords, self.map]
 
@@ -184,13 +187,13 @@ class AI:
                 return self.reconstruct_path(cameFrom, current)
             for direction in ['N', 'S', 'E', 'W']:
                 neighbor = current.get_neighbor_node(direction)
-                if neighbor and not neighbor.AStarVisited:
+                if neighbor and not neighbor.aiBAStarVisited:
                     g_score = current.g_score + 1
                     if g_score < neighbor.g_score:
                         cameFrom[neighbor] = current
                         neighbor.g_score = g_score
                         neighbor.f_score = g_score + abs(goal_node.xCoord - neighbor.xCoord) + abs(goal_node.yCoord - neighbor.yCoord)
-                        neighbor.AStarVisited = True
+                        neighbor.aiBAStarVisited = True
                         f_score = neighbor.f_score
                         heapq.heappush(openset, (f_score, neighbor))
         return random.choice(['N', 'S', 'E', 'W'])

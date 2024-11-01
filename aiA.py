@@ -28,10 +28,9 @@ class AI:
         self.hasAStarRunYet = False
         self.AStarPath = None
         self.AStarCount = 0
-        self.objectivePath = []
+        self.max_turn = max_turns if max_turns else 800
 
     def update(self, percepts, msg):
-        print(f"A received the message: {msg}")
         self.turn += 1
 
         # Receive data from Agent B
@@ -91,7 +90,7 @@ class AI:
             self.teleporter_cooldown -= 1
         '''
         # Use A* if the exit or goal is known and proceed directly
-        if self.goalCoords:
+        if self.goalCoords and self.turn >= self.max_turn - 100:
             if self.currentNode.whatMap!= 'main':
                 backtrack_node = self.path_stack.pop()
                 return self.backtrack_to_node(backtrack_node), [self.goalCoords, self.map]
@@ -99,6 +98,8 @@ class AI:
                 if self.hasAStarRunYet == False:
                     self.AStarPath = self.AStar_search(self.currentNode)
                     self.hasAStarRunYet = True
+                if percepts['X'][0] == 'r':
+                    return 'U', [self.goalCoords, self.map]
                 self.AStarCount -= 1
                 return self.AStarPath[self.AStarCount],[self.goalCoords, self.map]
 
@@ -188,13 +189,13 @@ class AI:
                 return self.reconstruct_path(cameFrom, current)
             for direction in ['N', 'S', 'E', 'W']:
                 neighbor = current.get_neighbor_node(direction)
-                if neighbor and not neighbor.AStarVisited:
+                if neighbor and not neighbor.aiAAStarVisited:
                     g_score = current.g_score + 1
                     if g_score < neighbor.g_score:
                         cameFrom[neighbor] = current
                         neighbor.g_score = g_score
                         neighbor.f_score = g_score + abs(goal_node.xCoord - neighbor.xCoord) + abs(goal_node.yCoord - neighbor.yCoord)
-                        neighbor.AStarVisited = True
+                        neighbor.aiAAStarVisited = True
                         f_score = neighbor.f_score
                         heapq.heappush(openset, (f_score, neighbor))
         return random.choice(['N', 'S', 'E', 'W'])
@@ -227,7 +228,7 @@ class Node:
         self.northNode = self.southNode = self.eastNode = self.westNode  = self.teleportNode = None
         self.f_score = float('inf')
         self.g_score = float('inf')
-        self.AStarVisited = False
+        self.aiAAStarVisited = self.aiBAStarVisited= False
     
     def setAVisitedToYes(self):
         self.Avisited = True
