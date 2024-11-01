@@ -54,12 +54,12 @@ class AI:
 
         self.update_graph(percepts)
 
-        # Detect goal or exit
+        # Detect exit or goal in the current cell
         if percepts['X'][0] == 'r':  # Exit cell
             self.goalCoords = (self.xCoord, self.yCoord)
             self.goalMap = self.currentNode.whatMap
-            self.atExit = True  # Indicate that A will wait here if exit is found
-            return 'U', [self.goalCoords, self.map]
+            self.atExit = True  # Set waiting at exit if B finds it first
+            return 'U', [self.goalCoords, self.map]  # Stay here to help guide Agent A
         elif percepts['X'][0].isdigit():  # Goal cell
             return 'U', [self.goalCoords, self.map]
         
@@ -90,7 +90,7 @@ class AI:
             self.teleporter_cooldown -= 1
         '''
         # Use A* if the exit or goal is known and proceed directly
-        if self.goalCoords and self.turn >= self.max_turn - 100:
+        if self.goalCoords:
             if self.currentNode.whatMap!= 'main':
                 backtrack_node = self.path_stack.pop()
                 return self.backtrack_to_node(backtrack_node), [self.goalCoords, self.map]

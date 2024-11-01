@@ -60,7 +60,7 @@ class AI:
             self.goalCoords = (self.xCoord, self.yCoord)
             self.goalMap = self.currentNode.whatMap
             self.atExit = True  # Set waiting at exit if B finds it first
-            #return 'U', [self.goalCoords, self.map]  # Stay here to help guide Agent A
+            return 'U', [self.goalCoords, self.map]  # Stay here to help guide Agent A
         elif percepts['X'][0].isdigit():  # Goal cell
             return 'U', [self.goalCoords, self.map]
 
