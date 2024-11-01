@@ -27,7 +27,7 @@ class AI:
         self.teleporter_cooldown = 0
 
     def update(self, percepts, msg):
-        print(f"B received the message: {msg}")
+        
         self.turn += 1
 
         # Process incoming data from Agent A
@@ -60,11 +60,21 @@ class AI:
         elif percepts['X'][0].isdigit():  # Goal cell
             return 'U', [self.goalCoords, self.map]
 
+        for direction in ['N', 'S', 'E', 'W']:
+            if 'r' in percepts[direction] and self.goalCoords == None:
+                self.path_stack.append(self.currentNode)
+                return self.move_in_direction(direction), [self.goalCoords, self.map]
+            
+            if any(x in percepts[direction] for x in '0123456789'):
+                self.path_stack.append(self.currentNode)
+                return self.move_in_direction(direction), [self.goalCoords, self.map]
+
         # If waiting at the exit, continue to share the exit coordinates but do not move
         if self.atExit:
             return None, [self.goalCoords, self.map]  # Remain stationary to guide A
 
         # Teleporter handling
+        '''
         if percepts['X'][0] in 'obyp' and self.teleporter_cooldown == 0:
             self.last_teleporter = percepts['X'][0]
             self.teleporter_cooldown = 3  # Set cooldown before reusing teleporter
@@ -75,7 +85,7 @@ class AI:
             return 'U', [self.goalCoords, self.map]
         elif self.teleporter_cooldown > 0:
             self.teleporter_cooldown -= 1
-
+        '''
         # Use A* if the exit location is known
         if self.goalCoords:
             if self.currentNode.whatMap!= 'main':
