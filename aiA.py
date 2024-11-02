@@ -70,6 +70,10 @@
 # By doing this it make is to the aiB will primarly start searching on the top and left side of the map and aiA will search on the
 # Right and towrds the bottom of the map.  By doing this they will cover the most amount of ground in the least amount of moves.
 #
+# What information will they share: The ai will send each other a shared map,  this will alow the ai that did not find the goal a way
+# to find it if has not incounted the goal. The other piece of information that it will share is the the eixt coord if the exit is know.
+# this will alow the ai's to find the goal and also is used as a tag for changing functionaly in the code based on if you can exit has
+# been found.
 #
 # aiA Approch(If It was woking proporly): 
 # This AI first uses a depth first search to explore the map. 
@@ -81,7 +85,7 @@
 # If aiA is on the exit it will then exit the map.
 # If aiB finds the exit then it will use the A* method to find its way to the goal if in the 'main' map
 # if it is in a teleporter map it will backtrack back to the teleporter then use A* to find it's way to the goal.
-#
+# When agent A finishes a move in the message it sends the update map from its last move and also the 'exit' coordenits if it has been found.
 #
 #
 #

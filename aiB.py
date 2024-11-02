@@ -16,6 +16,7 @@
 # If aiB is on the exit it will then exit the map.
 # If aiA finds the exit then it will use the A* method to find its way to the goal if in the 'main' map
 # If the goal if thought a teleporter then it will A* to the teleporter then A* to the exit.
+# When agent B finishes a move in the message it sends the update map from its last move and also the 'exit' coordenits if it has been found.
 
 
 
