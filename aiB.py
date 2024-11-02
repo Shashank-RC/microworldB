@@ -5,7 +5,7 @@
 # APPROACH: Look In aiA File for discriction on approch for both of the AI's what we did 
 # how the AI's are similar and how they are differnt.
 #
-#aiB Approch: 
+#aiB Approch(If our code was working propory): 
 # This AI first uses a depth first search to explore the map. 
 # The ai will prioritize going West first then North, then East and lastly South.
 # This will make it so that the ai will primaraly search the left and top of the map.
@@ -97,7 +97,7 @@ class AI:
                 return self.move_in_direction(direction), [self.goalCoords, self.map]
 
         # Teleporter handling with cooldown
-        if percepts['X'][0] in 'obyp' and self.teleporter_cooldown == 0:
+        if percepts['X'][0] in 'obyp' and self.teleporter_cooldown == 0 and self.goalCoords != None:
             if msg and len(msg) > 2 and msg[2] is not None:
                 self.last_teleporter = percepts['X'][0]
                 self.teleporter_cooldown = 3

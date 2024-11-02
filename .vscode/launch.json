@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "main.py",
             "console": "integratedTerminal",
-            "args" : ["-w", "worlds/world2", "-d" , "0.1"]
+            "args" : ["-w", "worlds/world_test", "-d" , "0.1"]
         }
     ]
 }

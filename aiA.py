@@ -4,6 +4,15 @@
 #
 # APPROACH: [WRITE AN OVERVIEW OF YOUR APPROACH HERE.]
 
+# DISCLAMERS: We have spent over 30 hours in the last week working on this project and the teleportation is still not working proporly
+# When we are not using the teleper our A* search seemed to be working. as soon as we added the teleperter back in A* was could 
+# not find a path to the exit node.  I do not know why I have tryed to fix thie issse for the las 5 hours and have still not sloved it
+# We are leving the assinment here becsue we are completly stumped and do not know were to go from were we are.  We have been looking 
+# at the code for so long our heads have starte to hurt.  Also are A* sometime will just not be able to find a path even if the AI has gone
+# over the exit.  We also spent a lot of time trying to figure this out with no luck it was odd sometime it would work other times it would 
+# not depending on where the node was. (I think that this was our hiuristic but I do not know how to improve or fix it.)
+
+
 #   Our initial approach to this project was this: aiA would use the depth-first search approach we 
 # made when creating our AI for project one.  aiB would then use a depth-first search to move 
 # around the map, and its initial goal would be to find the objectives, whereas aiA’s initial goal 
@@ -37,8 +46,17 @@
 # having problems.  After this we took a few steps back becuse we were running out of ideas to make this work.
 # So we went back the when an AI finds the exit to just exit and then for the other ai to call the A* to find it;s way back.
 # We did this becuse the only time that the A* was haing isssues was with the AIs when they found the goal before exiting.
-# 
-# So for our final implemtntation:
+# After that we tried to go back and implemt the teleperters we first started with trying to link them to we kind of go this
+# to work but were having a hard tiime maping the maps together if they saw the same Teleporter agein. So then we tryed to 
+# make it so that it would only last up to 50 turn before the ai went back to the Teleporter that it came throught but we could 
+# not figure out how to ge the back tracking to work proporly.  I tyried storing the mives to the tepelorter in an array and makeing 
+# sure to swap the direction so if it when to the East is would Store West and then when it got to 50 moves then it would flip the array
+# to make sure that we were poping the move to go back to the last position but we could just not get it to work proporly with our code.
+# So after we did this we reverted our code back again to were it was working the last time but now it aiB dose not use tp unless
+# the exit is in a TP and aiA and use the teleporters but is dose not have an escapse if it get stuck.
+#
+#
+# So for our final implemtntation (If It was woking proporly):
 #
 # How are our AI similar:  They Are both using the same searching algorithem (Depth first search to move around the map).
 # They are also using the same goal based moving system were if they see ether a objective or the exit they will move tordes it.
