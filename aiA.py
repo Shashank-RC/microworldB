@@ -82,7 +82,7 @@ class AI:
         self.goalCoords = None
         self.savedgoalCoords = None
         self.goalMap = None
-        self.atExit = False  # Flag to wait at exit if found first
+        self.atExit = False
         self.last_teleporter = None
         self.teleporter_cooldown = 0
         self.hasAStarRunYet = False
@@ -94,23 +94,9 @@ class AI:
         self.turn += 1
 
         # Receive data from Agent B
-        #if msg:
-        #    self.goalCoords = msg.get("goalCoords", self.goalCoords)
-        #    self.map.update(msg.get("sharedMap", {}))
-        #    if msg.get("teleporter"):
-        #        self.last_teleporter = msg["teleporter"]
-        #        self.teleporter_cooldown = 3
-
-        # Outgoing message to Agent B
-        #outgoing_msg = {
-        #    "goalCoords": self.goalCoords,
-        #    "sharedMap": self.map,
-        #    "teleporter": self.last_teleporter if self.teleporter_cooldown == 0 else None,
-        #}
-
-        self.map = msg[1] if msg != None else self.map
-        self.goalCoords = msg[0] if msg != None else self.goalCoords
-        
+        if msg:
+            self.goalCoords = msg[0] if msg[0] else self.goalCoords
+            self.map = msg[1] if msg[1] else self.map
 
         self.update_graph(percepts)
 
@@ -118,50 +104,65 @@ class AI:
         if percepts['X'][0] == 'r':  # Exit cell
             self.goalCoords = (self.xCoord, self.yCoord)
             self.goalMap = self.currentNode.whatMap
-            self.atExit = True  # Set waiting at exit if B finds it first
-            return 'U', [self.goalCoords, self.map]  # Stay here to help guide Agent A
+            self.atExit = True
+            if not self.hasAStarRunYet:
+                self.AStarPath = self.AStar_search(self.currentNode)
+                self.hasAStarRunYet = True
+                self.AStarCount = len(self.AStarPath) - 1  # Initialize AStarCount to the last index
+            return 'U', [self.goalCoords, self.map, self.AStarPath]  # Share path with Agent B
         elif percepts['X'][0].isdigit():  # Goal cell
             return 'U', [self.goalCoords, self.map]
-        
+
+        # Detect goals or exits in surrounding cells
         for direction in ['N', 'S', 'E', 'W']:
-            if 'r' in percepts[direction] and self.goalCoords == None:
+            if 'r' in percepts[direction] and not self.goalCoords:
                 self.path_stack.append(self.currentNode)
                 return self.move_in_direction(direction), [self.goalCoords, self.map]
-            
             if any(x in percepts[direction] for x in '0123456789'):
                 self.path_stack.append(self.currentNode)
                 return self.move_in_direction(direction), [self.goalCoords, self.map]
 
-        # If at exit, wait here for Agent B if exit has been found
+        # If at exit, remain here and send data to Agent B
         if self.atExit:
-            return None, [self.goalCoords, self.map]  # Remain stationary
+            return None, [self.goalCoords, self.map, self.AStarPath]
 
         # Teleporter handling with cooldown
-        '''
         if percepts['X'][0] in 'obyp' and self.teleporter_cooldown == 0:
             self.last_teleporter = percepts['X'][0]
-            self.teleporter_cooldown = 3
+            self.teleporter_cooldown = 3  # Activate cooldown
+            # Teleport to corresponding paired location
             if self.currentNode.whatMap == 'main':
                 self.xCoord, self.yCoord, self.currentNode.whatMap = 0, 0, percepts['X'][0]
             else:
                 self.currentNode.whatMap = 'main'
-            return 'U', [self.goalCoords, self.map]
+            return 'U', [self.goalCoords, self.map, self.AStarPath]  # Teleport and update Agent B
+
         elif self.teleporter_cooldown > 0:
             self.teleporter_cooldown -= 1
-        '''
+
         # Use A* if the exit or goal is known and proceed directly
         if self.goalCoords:
-            if self.currentNode.whatMap!= 'main':
-                backtrack_node = self.path_stack.pop()
-                return self.backtrack_to_node(backtrack_node), [self.goalCoords, self.map]
+            if self.currentNode.whatMap != 'main':
+                if self.path_stack:
+                    backtrack_node = self.path_stack.pop()
+                    return self.backtrack_to_node(backtrack_node), [self.goalCoords, self.map, self.AStarPath]
+                else:
+                    return self.explore_or_backtrack(), [self.goalCoords, self.map]
             else:
-                if self.hasAStarRunYet == False:
+                if not self.hasAStarRunYet:
                     self.AStarPath = self.AStar_search(self.currentNode)
                     self.hasAStarRunYet = True
+                    self.AStarCount = len(self.AStarPath) - 1
                 if percepts['X'][0] == 'r':
-                    return 'U', [self.goalCoords, self.map]
-                self.AStarCount -= 1
-                return self.AStarPath[self.AStarCount],[self.goalCoords, self.map]
+                    return 'U', [self.goalCoords, self.map, self.AStarPath]
+                
+                # Ensure AStarCount is within bounds before accessing AStarPath
+                if self.AStarPath and 0 <= self.AStarCount < len(self.AStarPath):
+                    move_cmd = self.AStarPath[self.AStarCount]
+                    self.AStarCount -= 1
+                    return move_cmd, [self.goalCoords, self.map, self.AStarPath]
+                else:
+                    return self.explore_or_backtrack(), [self.goalCoords, self.map]
 
         # Explore or backtrack if the goal or exit is unknown
         return self.explore_or_backtrack(), [self.goalCoords, self.map]
@@ -173,12 +174,10 @@ class AI:
                 self.path_stack.append(self.currentNode)
                 return self.move_in_direction(direction)
 
-        # Backtrack only if no new areas to explore
         if self.path_stack:
             backtrack_node = self.path_stack.pop()
             return self.backtrack_to_node(backtrack_node)
 
-        # Fallback: Random movement if path stack is empty
         return random.choice(['N', 'S', 'E', 'W'])
 
     def move_in_direction(self, direction):
@@ -285,10 +284,10 @@ class Node:
         self.whatMap = map_name
         self.Avisited = False
         self.Bvisited = False
-        self.northNode = self.southNode = self.eastNode = self.westNode  = self.teleportNode = None
+        self.northNode = self.southNode = self.eastNode = self.westNode = self.teleportNode = None
         self.f_score = float('inf')
         self.g_score = float('inf')
-        self.aiAAStarVisited = self.aiBAStarVisited= False
+        self.aiAAStarVisited = self.aiBAStarVisited = False
     
     def setAVisitedToYes(self):
         self.Avisited = True
@@ -310,4 +309,4 @@ class Node:
         }.get(direction)
     
     def __lt__(self, other):
-        return self.f_score < other.f_score 
+        return self.f_score < other.f_score
