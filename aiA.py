@@ -4,17 +4,11 @@
 #
 # APPROACH: [WRITE AN OVERVIEW OF YOUR APPROACH HERE.]
 
-# DISCLAMERS: We have spent over 45 hours combined in the last week working on this project and the teleportation is still not working proporly
-# When we are not using the teleper our A* search seemed to be working. as soon as we added the teleperter back in A* was could 
-# not find a path to the exit node.  I do not know why I have tryed to fix thie issse for the las 5 hours and have still not sloved it
-# We are leving the assinment here becsue we are completly stumped and do not know were to go from were we are.  We have been looking 
-# at the code for so long our heads have starte to hurt.  Also are A* sometime will just not be able to find a path even if the AI has gone
-# over the exit.  We also spent a lot of time trying to figure this out with no luck it was odd sometime it would work other times it would 
-# not depending on where the node was. (I think that this was our hiuristic but I do not know how to improve or fix it.)
+
 
 
 #   Our initial approach to this project was this: aiA would use the depth-first search approach we 
-# made when creating our AI for project one.  aiB would then use a depth-first search to move 
+# made when creating our AI for project one.  aiB would then use a breadth-first search to move 
 # around the map, and its initial goal would be to find the objectives, whereas aiA’s initial goal 
 # would be to find the exit of the map.  We thought that doing this it would make it so that they
 # were each trying to do different things and also so that they would cover the most amount of 
@@ -33,12 +27,12 @@
 # it would exit and then, in the message, send the x,y Coordinates of the exit to the other AI so 
 # that it could use the A* to find it’s way back.  But it was only working if the the AI using the 
 # A* search had not goten throught a teleporter before using the A* becuse we did not have the nodes
-# linked correctly.  So I wanted to try and keep the AI in he enviorment for a longer time before they
+# linked correctly.  So I wanted to try and keep the AI in the enviorment for a longer time before they
 # exited so I disabled the teleportation on the ais and started to make it so the if the AI found the exit
 # that it would mark it and save the exit coordinats and then it would keep searching, then I would keep track
-# of the turns and the max turn, I then compared them and subtracted 100 from turn. 
-# So when self.turn - 100 >= self.max_turn then I would use the A* on both agents and and they would both use that to get
-# out the the enviorment.  They was working and we were going to start imlimenting teleportation but I waned to
+# of the turns and the max turn, We then compared them and subtracted 100 from turn. 
+# So when self.turn - 100 >= self.max_turn then we would use the A* on both agents and and they would both use that to get
+# out the the enviorment.  They wereworking and we were going to start implementing teleportation but we wanted to
 # increase the number of moves in this comparison (self.turn - 100 >= self.max_turn) from 100 to 150 so that if 
 # the map was differnt then it could get out.  But then I started to run into issues of the A* function were the
 # ai that found the goal the A* founction could not find a path back.  So we tryed to fix the A* and were still 
@@ -56,7 +50,7 @@
 # the exit is in a TP and aiA and use the teleporters but is dose not have an escapse if it get stuck.
 #
 #
-# So for our final implemtntation (If It was woking proporly):
+# So for our final implemtntation we attempted to 
 #
 # How are our AI similar:  They Are both using the same searching algorithem (Depth first search to move around the map).
 # They are also using the same goal based moving system were if they see ether a objective or the exit they will move tordes it.
