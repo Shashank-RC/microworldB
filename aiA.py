@@ -71,7 +71,7 @@
 # Right and towrds the bottom of the map.  By doing this they will cover the most amount of ground in the least amount of moves.
 #
 #
-# aiA Approch: 
+# aiA Approch(If It was woking proporly): 
 # This AI first uses a depth first search to explore the map. 
 # The ai will prioritize going  East first then South, then West and lastly North.
 # This will make it so that the ai will primaraly search the right and bottom of the map.
