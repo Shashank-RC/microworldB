@@ -4,7 +4,7 @@
 #
 # APPROACH: [WRITE AN OVERVIEW OF YOUR APPROACH HERE.]
 
-# DISCLAMERS: We have spent over 30 hours in the last week working on this project and the teleportation is still not working proporly
+# DISCLAMERS: We have spent over 45 hours combined in the last week working on this project and the teleportation is still not working proporly
 # When we are not using the teleper our A* search seemed to be working. as soon as we added the teleperter back in A* was could 
 # not find a path to the exit node.  I do not know why I have tryed to fix thie issse for the las 5 hours and have still not sloved it
 # We are leving the assinment here becsue we are completly stumped and do not know were to go from were we are.  We have been looking 
